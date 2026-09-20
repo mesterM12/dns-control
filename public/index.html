@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>DNS Control</title>
+    <link rel="stylesheet" href="/app.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="wordmark">DNS</p>
+        <p id="service" class="service">Checking</p>
+      </header>
+      <section class="control" aria-label="DNS control">
+        <button id="toggle" class="toggle" type="button" aria-pressed="false" aria-describedby="detail" disabled>
+          <span id="button-label" class="button-label">Checking</span>
+          <span id="mode" class="mode">Status</span>
+        </button>
+        <p id="detail" class="message" role="status" hidden></p>
+      </section>
+      <section class="shutdown" aria-label="DNS proxy service">
+        <button id="stop-proxy" type="button">Stop proxy</button>
+      </section>
+      <dialog id="stop-dialog" aria-labelledby="stop-title">
+        <form method="dialog">
+          <h2 id="stop-title">Stop DNS proxy?</h2>
+          <p>DHCP DNS will be restored before dnscrypt-proxy is stopped.</p>
+          <div>
+            <button value="cancel">Cancel</button>
+            <button id="confirm-stop" value="confirm">Stop proxy</button>
+          </div>
+        </form>
+      </dialog>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

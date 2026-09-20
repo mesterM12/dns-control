@@ -1,0 +1,42 @@
+{
+  "name": "dns-control",
+  "version": "1.0.0",
+  "title": "DNS Control",
+  "description": "Switch between DNS proxy and DHCP DNS",
+  "icon": "icon.png",
+  "author": "mrm",
+  "platforms": ["macOS"],
+  "categories": ["System"],
+  "license": "MIT",
+  "keywords": ["dns", "proxy", "dhcp", "adguard"],
+  "main": "src/status.tsx",
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop",
+    "lint": "ray lint"
+  },
+  "dependencies": {
+    "@raycast/api": "^1.98.0"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^2.0.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "commands": [
+    {
+      "name": "toggle-dns",
+      "title": "Toggle DNS Proxy",
+      "description": "Switch between the DNS proxy and DHCP DNS",
+      "mode": "no-view"
+    },
+    {
+      "name": "open-control-page",
+      "title": "Open DNS Control Page",
+      "description": "Open the local DNS Control page",
+      "mode": "no-view"
+    }
+  ]
+}

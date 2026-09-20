@@ -1,0 +1,12 @@
+{
+  "name": "dns-control",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/client.ts --target=browser --minify --outfile public/app.js",
+    "start": "bun src/server.ts",
+    "check": "bun run build && bun build src/server.ts --target=bun --outdir=/tmp/dns-control-check",
+    "install:agent": "bun scripts/install-launch-agent.ts",
+    "install:helper": "bun scripts/install-privileged-helper.ts"
+  }
+}

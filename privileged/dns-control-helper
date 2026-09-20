@@ -1,0 +1,46 @@
+#!/bin/sh
+set -eu
+
+NETWORKSETUP=/usr/sbin/networksetup
+PGREP=/usr/bin/pgrep
+ROUTE=/sbin/route
+AWK=/usr/bin/awk
+if [ -x /opt/homebrew/bin/brew ]; then
+  BREW=/opt/homebrew/bin/brew
+else
+  BREW=/usr/local/bin/brew
+fi
+LAUNCHCTL=/bin/launchctl
+
+case "${1-}" in
+  enable|disable|stop) action=$1 ;;
+  *) echo "usage: dns-control-helper {enable|disable|stop}" >&2; exit 64 ;;
+esac
+
+interface="$($ROUTE -n get default | $AWK '/interface:/{print $2; exit}')"
+[ -n "$interface" ] || { echo "No default network interface." >&2; exit 1; }
+
+service="$($NETWORKSETUP -listnetworkserviceorder | $AWK -v device="$interface" '
+  /^\([0-9]+\) / { name = $0; sub(/^\([0-9]+\) /, "", name) }
+  $0 ~ "Device: " device "\\)" { print name; exit }
+')"
+[ -n "$service" ] || { echo "No network service for $interface." >&2; exit 1; }
+
+if [ "$action" = enable ]; then
+  if ! $PGREP -x dnscrypt-proxy >/dev/null 2>&1; then
+    "$BREW" services start dnscrypt-proxy || "$LAUNCHCTL" kickstart -k system/homebrew.mxcl.dnscrypt-proxy
+  fi
+  $PGREP -x dnscrypt-proxy >/dev/null 2>&1 || { echo "dnscrypt-proxy did not start." >&2; exit 1; }
+  "$NETWORKSETUP" -setdnsservers "$service" 127.0.0.1 ::1
+elif [ "$action" = disable ]; then
+  "$NETWORKSETUP" -setdnsservers "$service" Empty
+else
+  "$NETWORKSETUP" -setdnsservers "$service" Empty
+  "$BREW" services stop dnscrypt-proxy || true
+  "$LAUNCHCTL" bootout system/homebrew.mxcl.dnscrypt-proxy 2>/dev/null || true
+  /usr/bin/pkill -x dnscrypt-proxy 2>/dev/null || true
+  if $PGREP -x dnscrypt-proxy >/dev/null 2>&1; then
+    echo "dnscrypt-proxy is still running." >&2
+    exit 1
+  fi
+fi

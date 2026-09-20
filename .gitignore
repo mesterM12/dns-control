@@ -1,0 +1,6 @@
+.DS_Store
+logs/
+state.json
+public/app.js
+raycast/node_modules/
+raycast/raycast-env.d.ts
