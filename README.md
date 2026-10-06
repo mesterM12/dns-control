@@ -3,7 +3,7 @@
 Local macOS controls for switching the active network service between a loopback `dnscrypt-proxy` resolver and DHCP DNS.
 
 - A loopback-only Bun control panel at `http://127.0.0.1:43173`
-- A Raycast extension for toggling the DNS proxy or opening the panel
+- A Raycast extension for viewing DNS status, toggling the DNS proxy, or opening the panel
 - A root-owned helper restricted to the exact `enable`, `disable`, and `stop` DNS actions
 
 No resolver URLs, API keys, or credentials are stored in this repository.

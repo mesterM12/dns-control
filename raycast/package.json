@@ -27,6 +27,12 @@
   },
   "commands": [
     {
+      "name": "status",
+      "title": "DNS Status",
+      "description": "Check DNS proxy, network, and resolver status without opening a browser",
+      "mode": "view"
+    },
+    {
       "name": "toggle-dns",
       "title": "Toggle DNS Proxy",
       "description": "Switch between the DNS proxy and DHCP DNS",
