@@ -39,19 +39,6 @@
           <path class="sigil-cross" d="M26 64h12m52 0h12" />
         </g>
       </symbol>
-      <symbol id="icon-auto" viewBox="0 0 24 24">
-        <g
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path
-            d="M19 8a7.5 7.5 0 0 0-12-2L4 9m0-5v5h5M5 16a7.5 7.5 0 0 0 12 2l3-3m0 5v-5h-5"
-          />
-        </g>
-      </symbol>
     </svg>
     <main class="app-shell">
       <header class="app-header">
@@ -70,9 +57,21 @@
           <span class="edition">W / 001</span>
         </div>
         <div class="current-resolver">
+          <button
+            id="toggle"
+            class="sigil-toggle"
+            type="button"
+            aria-pressed="false"
+            aria-label="Turn on encrypted DNS"
+            aria-describedby="toggle-hint"
+            disabled
+          >
+            <svg aria-hidden="true" viewBox="0 0 128 128">
+              <use href="#ward-sigil" />
+            </svg>
+          </button>
           <div class="resolver-copy">
-            <p class="eyebrow">Current resolver</p>
-            <h1 id="resolver-title">Reading<br />the wire.</h1>
+            <h1 id="resolver-title">Reading the wire.</h1>
             <p id="resolver-description" class="resolver-description">
               Checking your network configuration.
             </p>
@@ -81,67 +80,17 @@
               ><span id="state-label">Checking</span></span
             >
           </div>
-          <div id="sigil" class="sigil-display" aria-hidden="true">
-            <span class="sigil-orbit"></span>
-            <svg><use href="#ward-sigil" /></svg>
-            <span class="sigil-caption">LOCAL / DNS</span>
-          </div>
+          <p id="toggle-hint" class="toggle-hint">
+            Waiting for network status.
+          </p>
+          <p
+            id="message"
+            class="message"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></p>
         </div>
-      </section>
-
-      <section class="mode-section" aria-labelledby="mode-heading">
-        <div class="mode-heading">
-          <div>
-            <h2 id="mode-heading">Resolver mode</h2>
-            <p>Select how your Mac resolves names.</p>
-          </div>
-          <span class="section-index" aria-hidden="true">01 / 02</span>
-        </div>
-        <div class="mode-options" role="group" aria-label="Resolver mode">
-          <button
-            id="mode-encrypted"
-            class="mode-option"
-            type="button"
-            aria-pressed="false"
-            disabled
-          >
-            <svg class="option-icon" aria-hidden="true">
-              <use href="#ward-sigil" />
-            </svg>
-            <span class="option-copy"
-              ><span class="option-title">Encrypted</span
-              ><span class="option-detail">Local DNS proxy</span></span
-            ><span class="selection-mark" aria-hidden="true"></span>
-          </button>
-          <button
-            id="mode-automatic"
-            class="mode-option"
-            type="button"
-            aria-pressed="false"
-            disabled
-          >
-            <svg class="option-icon auto-icon" aria-hidden="true">
-              <use href="#icon-auto" />
-            </svg>
-            <span class="option-copy"
-              ><span class="option-title">Automatic</span
-              ><span class="option-detail">Network-provided DNS</span></span
-            ><span class="selection-mark" aria-hidden="true"></span>
-          </button>
-        </div>
-        <div class="apply-row">
-          <p id="selection-note">Waiting for network status.</p>
-          <button id="apply-mode" class="button-primary" type="button" disabled>
-            Apply mode <span aria-hidden="true">↗</span>
-          </button>
-        </div>
-        <p
-          id="message"
-          class="message"
-          role="status"
-          aria-live="polite"
-          hidden
-        ></p>
       </section>
 
       <section class="network-section" aria-labelledby="network-heading">
@@ -195,24 +144,6 @@
     </main>
 
     <dialog
-      id="mode-dialog"
-      aria-labelledby="mode-dialog-title"
-      aria-describedby="mode-dialog-description"
-    >
-      <form method="dialog">
-        <p class="eyebrow">Network rituals / Confirm</p>
-        <h2 id="mode-dialog-title">Change DNS mode?</h2>
-        <p id="mode-dialog-description"></p>
-        <div class="dialog-actions">
-          <button value="cancel" class="button-secondary" autofocus>
-            Keep current mode</button
-          ><button id="confirm-mode" value="confirm" class="button-primary">
-            Apply mode
-          </button>
-        </div>
-      </form>
-    </dialog>
-    <dialog
       id="stop-dialog"
       aria-labelledby="stop-title"
       aria-describedby="stop-description"
@@ -222,7 +153,7 @@
         <h2 id="stop-title">Let the resolver rest.</h2>
         <p id="stop-description">
           Automatic DNS will be restored before the local resolver stops. You
-          can start it again by selecting Encrypted mode.
+          can start it again by pressing the sigil.
         </p>
         <div class="dialog-actions">
           <button value="cancel" class="button-secondary" autofocus>

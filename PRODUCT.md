@@ -28,4 +28,4 @@ Loopback-only, no login, no persisted credentials and no remote operation. Runti
 
 ## Product Principles
 
-Show the observed DNS configuration clearly, confirm mode changes, keep network diagnostics secondary, and keep privileged work narrowly scoped. Use a restrained geometric sigil and the Poisoned Sage palette; automatic DNS remains a normal, neutral state.
+Show the observed DNS configuration clearly, make the large circular sigil a direct on/off toggle, keep network diagnostics secondary, and keep privileged work narrowly scoped. Use a restrained geometric sigil and the Poisoned Sage palette; automatic DNS remains a normal, neutral state.

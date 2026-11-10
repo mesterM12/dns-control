@@ -4,7 +4,7 @@ A little magic between you and the wire.
 
 Local macOS controls for switching the active network service between a loopback `dnscrypt-proxy` resolver and DHCP DNS.
 
-- A Ward control panel with a stateful sigil and confirmed mode changes at `http://127.0.0.1:43173`
+- A Ward control panel with a large circular sigil for one-click DNS toggling at `http://127.0.0.1:43173`
 - Ward commands in Raycast: Status, Toggle DNS, Encrypted, Automatic and Open Panel
 - A root-owned helper restricted to the exact `enable`, `disable`, and `stop` DNS actions
 

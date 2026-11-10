@@ -19,7 +19,7 @@ Geist for application typography; JetBrains Mono for network facts, small labels
 
 ## Interaction and voice
 
-Current configuration, choose a mode, confirm. Network details and stopping the resolver are secondary. Selected controls show the pending choice; the current-resolver heading and sigil always show the observed configuration. Custom DNS and an offline resolver are represented explicitly. Errors never claim that the previous configuration was restored unless that is known.
+The large circular Ward sigil is the primary on/off button. One press switches between local encrypted DNS and automatic network DNS. The sigil and current-resolver heading always show the observed configuration; the button is disabled while a change is in progress. Network details and stopping the resolver are secondary, with confirmation retained for stopping. Custom DNS and an offline resolver are represented explicitly. Errors never claim that the previous configuration was restored unless that is known.
 
 Ward is a small, competent guardian: slightly eerie, always clear. Primary tagline: “A little magic between you and the wire.” DNS encryption is scoped to the configured local resolver and never presented as protection for all network traffic.
 

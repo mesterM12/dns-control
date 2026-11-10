@@ -124,128 +124,128 @@ async function setup(overrides: Partial<Status> = {}) {
   };
 }
 
-test("shows the observed encrypted state and keeps a pending choice separate", async () => {
+test("the large logo is an accessible toggle showing the observed state", async () => {
   const ui = await setup();
-  expect(ui.window.document.body.dataset.state).toBe("encrypted");
-  expect(ui.element("state-label").textContent).toBe("Ward active");
-  expect(ui.button("apply-mode").disabled).toBe(true);
-  ui.button("mode-automatic").click();
-  expect(ui.button("mode-automatic").getAttribute("aria-pressed")).toBe("true");
-  expect(ui.element("resolver-title").textContent).toBe("Encrypted\nDNS");
+  const toggle = ui.button("toggle");
+  expect(toggle.tagName).toBe("BUTTON");
+  expect(toggle.querySelector("use")?.getAttribute("href")).toBe("#ward-sigil");
+  expect(toggle.getAttribute("aria-pressed")).toBe("true");
+  expect(toggle.getAttribute("aria-label")).toBe("Turn off encrypted DNS");
+  expect(toggle.disabled).toBe(false);
   expect(ui.mutations).toHaveLength(0);
-  await ui.poll();
-  expect(ui.button("mode-automatic").getAttribute("aria-pressed")).toBe("true");
+  expect(ui.element("mode-dialog")).toBeNull();
 });
 
-test("requires confirmation, honors cancellation, then applies automatic DNS", async () => {
+test("one press turns encrypted DNS off without an Apply step", async () => {
   const ui = await setup();
-  ui.button("mode-automatic").click();
-  ui.button("apply-mode").click();
-  expect(ui.dialog("mode-dialog").open).toBe(true);
-  ui.dialog("mode-dialog").close("cancel");
-  expect(ui.mutations).toHaveLength(0);
-  ui.button("apply-mode").click();
-  ui.dialog("mode-dialog").close("confirm");
+  ui.button("toggle").click();
   await settle();
   expect(ui.mutations).toEqual([
     { path: "/api/toggle", body: { enabled: false } },
   ]);
   expect(ui.window.document.body.dataset.state).toBe("automatic");
+  expect(ui.button("toggle").getAttribute("aria-pressed")).toBe("false");
   expect(ui.element("resolver-description").textContent).toBe(
     "Using network-provided DNS.",
   );
 });
 
-test("enables encrypted DNS from automatic mode", async () => {
+test("one press turns encrypted DNS on from automatic mode", async () => {
   const ui = await setup({ enabled: false, configuredResolvers: [] });
-  ui.button("mode-encrypted").click();
-  ui.button("apply-mode").click();
-  ui.dialog("mode-dialog").close("confirm");
+  expect(ui.button("toggle").getAttribute("aria-label")).toBe(
+    "Turn on encrypted DNS",
+  );
+  ui.button("toggle").click();
   await settle();
   expect(ui.mutations[0].body).toEqual({ enabled: true });
   expect(ui.window.document.body.dataset.state).toBe("encrypted");
+  expect(ui.button("toggle").getAttribute("aria-pressed")).toBe("true");
 });
 
-test("locks controls and suspends polling while a change is pending", async () => {
+test("locks the logo during a change and prevents duplicate requests", async () => {
   const ui = await setup();
   ui.delay();
-  ui.button("mode-automatic").click();
-  ui.button("apply-mode").click();
-  ui.dialog("mode-dialog").close("confirm");
-  expect(ui.button("mode-encrypted").disabled).toBe(true);
-  expect(ui.button("mode-automatic").disabled).toBe(true);
+  ui.button("toggle").click();
+  expect(ui.button("toggle").disabled).toBe(true);
+  expect(ui.button("toggle").getAttribute("aria-busy")).toBe("true");
+  expect(ui.button("toggle").getAttribute("aria-pressed")).toBe("true");
   expect(ui.button("stop-proxy").disabled).toBe(true);
+  ui.button("toggle").click();
   await ui.poll();
+  expect(ui.mutations).toHaveLength(1);
   expect(ui.window.document.body.dataset.busy).toBe("true");
   ui.release();
   await settle();
   expect(ui.window.document.body.dataset.busy).toBe("false");
+  expect(ui.button("toggle").getAttribute("aria-busy")).toBe("false");
 });
 
-test("a slow status request cannot overwrite a newly confirmed mode", async () => {
+test("a slow status request cannot overwrite the new toggle state", async () => {
   const ui = await setup();
   ui.holdStatus();
   await ui.poll();
-  ui.button("mode-automatic").click();
-  ui.button("apply-mode").click();
-  ui.dialog("mode-dialog").close("confirm");
+  ui.button("toggle").click();
   await settle();
   ui.releaseStatus();
   await settle();
   expect(ui.window.document.body.dataset.state).toBe("automatic");
-  expect(ui.element("resolver-title").textContent).toBe("Automatic\nDNS");
+  expect(ui.element("resolver-title").textContent).toBe("Automatic DNS");
+  expect(ui.button("toggle").getAttribute("aria-pressed")).toBe("false");
 });
 
-test("failed changes retain the observed mode and show the error", async () => {
+test("failed changes retain the observed state and show the error", async () => {
   const ui = await setup();
   ui.fail();
-  ui.button("mode-automatic").click();
-  ui.button("apply-mode").click();
-  ui.dialog("mode-dialog").close("confirm");
+  ui.button("toggle").click();
   await settle();
   expect(ui.window.document.body.dataset.state).toBe("encrypted");
+  expect(ui.button("toggle").getAttribute("aria-pressed")).toBe("true");
+  expect(ui.button("toggle").disabled).toBe(false);
   expect(ui.element("message").textContent).toContain(
     "Could not change DNS settings.",
   );
   expect(ui.element("message").classList.contains("error")).toBe(true);
 });
 
-test("custom DNS is represented without claiming automatic mode", async () => {
+test("custom DNS is represented accurately and pressing the logo enables encrypted DNS", async () => {
   const ui = await setup({
     enabled: false,
     configuredResolvers: ["192.0.2.53"],
   });
-  expect(ui.element("resolver-title").textContent).toBe("Custom\nDNS");
-  expect(ui.button("mode-automatic").getAttribute("aria-pressed")).toBe(
-    "false",
-  );
-  expect(ui.button("apply-mode").disabled).toBe(true);
-  ui.button("mode-automatic").click();
-  expect(ui.button("apply-mode").disabled).toBe(false);
+  expect(ui.element("resolver-title").textContent).toBe("Custom DNS");
+  expect(ui.button("toggle").getAttribute("aria-pressed")).toBe("false");
+  ui.button("toggle").click();
+  await settle();
+  expect(ui.mutations[0].body).toEqual({ enabled: true });
 });
 
-test("a configured but stopped resolver is a warning with a restart action", async () => {
+test("an offline encrypted resolver remains switchable to automatic DNS", async () => {
   const ui = await setup({ dnscryptRunning: false });
   expect(ui.window.document.body.dataset.state).toBe("warning");
   expect(ui.element("state-label").textContent).toBe("Resolver offline");
-  expect(ui.button("apply-mode").disabled).toBe(false);
-  expect(ui.button("apply-mode").textContent).toContain("Start resolver");
+  expect(ui.button("toggle").getAttribute("aria-label")).toBe(
+    "Turn off encrypted DNS",
+  );
+  ui.button("toggle").click();
+  await settle();
+  expect(ui.mutations[0].body).toEqual({ enabled: false });
 });
 
-test("disables mode changes with no active network", async () => {
+test("disables the logo with no active network", async () => {
   const ui = await setup({ activeService: null, activeInterface: null });
   expect(ui.element("state-label").textContent).toBe("No network");
-  expect(ui.button("mode-encrypted").disabled).toBe(true);
-  expect(ui.button("apply-mode").disabled).toBe(true);
+  expect(ui.button("toggle").disabled).toBe(true);
+  ui.button("toggle").click();
+  expect(ui.mutations).toHaveLength(0);
 });
 
-test("unavailable status never leaves stale facts or actionable mode controls", async () => {
+test("unavailable status clears stale facts and disables the controls", async () => {
   const ui = await setup();
   ui.unavailable();
   await ui.poll();
   expect(ui.window.document.body.dataset.state).toBe("unavailable");
   expect(ui.element("service").textContent).toBe("—");
-  expect(ui.button("mode-automatic").disabled).toBe(true);
+  expect(ui.button("toggle").disabled).toBe(true);
   expect(ui.button("stop-proxy").disabled).toBe(true);
 });
 

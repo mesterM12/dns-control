@@ -10,16 +10,10 @@ type Status = {
 type Mode = "encrypted" | "automatic";
 
 const $ = (id: string) => document.getElementById(id)!;
-const encrypted = $("mode-encrypted") as HTMLButtonElement;
-const automatic = $("mode-automatic") as HTMLButtonElement;
-const apply = $("apply-mode") as HTMLButtonElement;
+const toggle = $("toggle") as HTMLButtonElement;
 const stopProxy = $("stop-proxy") as HTMLButtonElement;
-const modeDialog = $("mode-dialog") as HTMLDialogElement;
 const stopDialog = $("stop-dialog") as HTMLDialogElement;
 let current: Status | undefined;
-let selection: Mode | null = null;
-let confirmedSelection: Mode | null = null;
-let dirty = false;
 let busy = false;
 let available = false;
 let changeVersion = 0;
@@ -40,46 +34,34 @@ function message(text: string | null, error = false) {
 
 function updateControls() {
   const connected = available && Boolean(current?.activeService);
-  encrypted.disabled = automatic.disabled = busy || !connected;
-  encrypted.setAttribute("aria-pressed", String(selection === "encrypted"));
-  automatic.setAttribute("aria-pressed", String(selection === "automatic"));
-  const changed = Boolean(
-    current && selection && selection !== modeOf(current),
+  toggle.disabled = busy || !connected;
+  toggle.setAttribute("aria-pressed", String(Boolean(current?.enabled)));
+  toggle.setAttribute("aria-busy", String(busy));
+  toggle.setAttribute(
+    "aria-label",
+    busy
+      ? "Changing DNS mode"
+      : current?.enabled
+        ? "Turn off encrypted DNS"
+        : "Turn on encrypted DNS",
   );
-  const retry = Boolean(
-    current?.enabled && !current.dnscryptRunning && selection === "encrypted",
-  );
-  apply.disabled = busy || !connected || !(changed || retry);
-  apply.firstChild!.textContent = busy
-    ? "Applying mode "
-    : retry
-      ? "Start resolver "
-      : "Apply mode ";
-  $("selection-note").textContent = busy
-    ? "Updating network settings…"
+  $("toggle-hint").textContent = busy
+    ? "Changing your DNS configuration…"
     : !available
       ? "Waiting for network status."
       : !connected
         ? "Connect to a network to change DNS."
-        : changed
-          ? "Ready when you are."
-          : retry
-            ? "The local resolver is not running."
-            : !selection
-              ? "Select a mode to make a change."
-              : "Current configuration selected.";
+        : current?.enabled
+          ? "Click the sigil to use automatic DNS."
+          : "Click the sigil to turn on encrypted DNS.";
   stopProxy.disabled = busy || !available || !current?.dnscryptRunning;
   document.body.dataset.busy = String(busy);
 }
 
-function render(status: Status, resetSelection = false) {
+function render(status: Status) {
   current = status;
   available = true;
   const mode = modeOf(status);
-  if (!dirty || resetSelection) {
-    selection = mode === "custom" ? null : mode;
-    dirty = false;
-  }
   const noNetwork = !status.activeService;
   const offline = status.enabled && !status.dnscryptRunning;
   document.body.dataset.state = noNetwork
@@ -88,12 +70,12 @@ function render(status: Status, resetSelection = false) {
       ? "warning"
       : mode;
   $("resolver-title").textContent = noNetwork
-    ? "Not\nconnected."
+    ? "Not connected."
     : mode === "encrypted"
-      ? "Encrypted\nDNS"
+      ? "Encrypted DNS"
       : mode === "automatic"
-        ? "Automatic\nDNS"
-        : "Custom\nDNS";
+        ? "Automatic DNS"
+        : "Custom DNS";
   $("resolver-description").textContent = noNetwork
     ? "Connect to a network to read its DNS settings."
     : offline
@@ -130,7 +112,7 @@ function render(status: Status, resetSelection = false) {
 }
 
 async function refresh() {
-  if (busy || modeDialog.open || stopDialog.open) return;
+  if (busy || stopDialog.open) return;
   const version = changeVersion;
   try {
     const response = await fetch("/api/status", {
@@ -144,7 +126,7 @@ async function refresh() {
     if (version !== changeVersion) return;
     available = false;
     document.body.dataset.state = "unavailable";
-    $("resolver-title").textContent = "Connection\nunavailable.";
+    $("resolver-title").textContent = "Connection unavailable.";
     $("resolver-description").textContent =
       "Ward could not reach its local control service.";
     $("state-label").textContent = "Unavailable";
@@ -162,32 +144,9 @@ async function refresh() {
   }
 }
 
-for (const [button, mode] of [
-  [encrypted, "encrypted"],
-  [automatic, "automatic"],
-] as const) {
-  button.addEventListener("click", () => {
-    selection = mode;
-    dirty = true;
-    updateControls();
-  });
-}
-
-apply.addEventListener("click", () => {
-  if (!selection || !available || busy || apply.disabled) return;
-  confirmedSelection = selection;
-  const enabling = selection === "encrypted";
-  $("mode-dialog-title").textContent = enabling
-    ? "Select encrypted DNS?"
-    : "Use automatic DNS?";
-  $("mode-dialog-description").textContent = enabling
-    ? "Ward will start the local encrypted resolver, check that it is ready, then select it for your active network."
-    : "Your active network will use its network-provided DNS settings. The local resolver will stay ready for next time.";
-  $("confirm-mode").textContent = enabling
-    ? "Use encrypted DNS"
-    : "Use automatic DNS";
-  modeDialog.returnValue = "";
-  modeDialog.showModal();
+toggle.addEventListener("click", () => {
+  if (!current || !available || busy || toggle.disabled) return;
+  void mutate("/api/toggle", { enabled: !current.enabled });
 });
 
 async function mutate(path: string, body?: { enabled: boolean }) {
@@ -207,7 +166,7 @@ async function mutate(path: string, body?: { enabled: boolean }) {
       signal: AbortSignal.timeout(45_000),
     });
     const status = (await response.json()) as Status;
-    render(status, true);
+    render(status);
     if (!response.ok)
       message(
         "Could not change DNS settings. " +
@@ -228,14 +187,6 @@ async function mutate(path: string, body?: { enabled: boolean }) {
     if (!available) void refresh();
   }
 }
-
-modeDialog.addEventListener("close", () => {
-  const requested = confirmedSelection;
-  confirmedSelection = null;
-  if (modeDialog.returnValue === "confirm" && requested && !busy) {
-    void mutate("/api/toggle", { enabled: requested === "encrypted" });
-  }
-});
 
 stopProxy.addEventListener("click", () => {
   if (busy || stopProxy.disabled) return;
