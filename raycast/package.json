@@ -1,6 +1,7 @@
 {
   "name": "dns-control",
   "version": "1.0.0",
+  "private": true,
   "title": "DNS Control",
   "description": "Switch between DNS proxy and DHCP DNS",
   "icon": "icon.png",
@@ -22,7 +23,8 @@
   "scripts": {
     "build": "ray build",
     "dev": "ray develop",
-    "lint": "ray lint"
+    "lint": "eslint src eslint.config.mjs --max-warnings=0 && prettier --check src eslint.config.mjs package.json",
+    "lint:store": "ray lint"
   },
   "dependencies": {
     "@raycast/api": "^2.11.1"

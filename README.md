@@ -59,6 +59,8 @@ npx ray develop
 
 Raycast imports the extension when development mode starts. It remains available after the command stops.
 
+This is a local-only extension. Run `npm run lint` in `raycast` to check the source with Raycast's ESLint rules and Prettier without requiring a Raycast Store profile. The optional `npm run lint:store` command also validates Store metadata and requires a real Raycast username in the manifest's `author` field before publication.
+
 ## Security Model
 
 The web server binds only to `127.0.0.1` and `::1`, rejects cross-origin mutations, and does not expose a remote API. The privileged helper has fixed arguments, independently selects the default network service, and is installed as `root:wheel`; review `privileged/dns-control-helper` before running the installer.

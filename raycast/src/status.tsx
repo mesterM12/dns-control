@@ -3,6 +3,7 @@ import {
   ActionPanel,
   Color,
   Icon,
+  Keyboard,
   List,
   showToast,
   Toast,
@@ -61,7 +62,7 @@ export default function Command() {
         title="Refresh Status"
         icon={Icon.ArrowClockwise}
         onAction={refresh}
-        shortcut={{ modifiers: ["cmd"], key: "r" }}
+        shortcut={Keyboard.Shortcut.Common.Refresh}
       />
       {status && (
         <Action
