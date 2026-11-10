@@ -7,82 +7,245 @@ type Status = {
   lastAction: string | null;
   lastError: string | null;
 };
+type Mode = "encrypted" | "automatic";
 
 const $ = (id: string) => document.getElementById(id)!;
-const toggle = $("toggle");
+const encrypted = $("mode-encrypted") as HTMLButtonElement;
+const automatic = $("mode-automatic") as HTMLButtonElement;
+const apply = $("apply-mode") as HTMLButtonElement;
 const stopProxy = $("stop-proxy") as HTMLButtonElement;
+const modeDialog = $("mode-dialog") as HTMLDialogElement;
 const stopDialog = $("stop-dialog") as HTMLDialogElement;
-const confirmStop = $("confirm-stop") as HTMLButtonElement;
 let current: Status | undefined;
+let selection: Mode | null = null;
+let confirmedSelection: Mode | null = null;
+let dirty = false;
+let busy = false;
+let available = false;
+let changeVersion = 0;
 
-function render(status: Status) {
+function modeOf(status: Status): Mode | "custom" {
+  return status.enabled
+    ? "encrypted"
+    : status.configuredResolvers.length
+      ? "custom"
+      : "automatic";
+}
+
+function message(text: string | null, error = false) {
+  $("message").textContent = text ?? "";
+  $("message").hidden = !text;
+  $("message").classList.toggle("error", error);
+}
+
+function updateControls() {
+  const connected = available && Boolean(current?.activeService);
+  encrypted.disabled = automatic.disabled = busy || !connected;
+  encrypted.setAttribute("aria-pressed", String(selection === "encrypted"));
+  automatic.setAttribute("aria-pressed", String(selection === "automatic"));
+  const changed = Boolean(
+    current && selection && selection !== modeOf(current),
+  );
+  const retry = Boolean(
+    current?.enabled && !current.dnscryptRunning && selection === "encrypted",
+  );
+  apply.disabled = busy || !connected || !(changed || retry);
+  apply.firstChild!.textContent = busy
+    ? "Applying mode "
+    : retry
+      ? "Start resolver "
+      : "Apply mode ";
+  $("selection-note").textContent = busy
+    ? "Updating network settings…"
+    : !available
+      ? "Waiting for network status."
+      : !connected
+        ? "Connect to a network to change DNS."
+        : changed
+          ? "Ready when you are."
+          : retry
+            ? "The local resolver is not running."
+            : !selection
+              ? "Select a mode to make a change."
+              : "Current configuration selected.";
+  stopProxy.disabled = busy || !available || !current?.dnscryptRunning;
+  document.body.dataset.busy = String(busy);
+}
+
+function render(status: Status, resetSelection = false) {
   current = status;
-  const available = status.dnscryptRunning;
-  $("button-label").textContent = status.enabled ? "DNS proxy" : "DHCP DNS";
-  $("mode").textContent = status.enabled ? "Heartbeat active" : "DHCP mode";
-  $("service").textContent = status.activeService ?? "No network";
-  $("detail").textContent = status.lastError ?? "";
-  $("detail").classList.toggle("error", Boolean(status.lastError));
-  $("detail").hidden = !status.lastError;
-  toggle.disabled = false;
-  toggle.setAttribute("aria-pressed", String(status.enabled));
-  toggle.setAttribute("aria-label", status.enabled ? "Switch to DHCP DNS" : "Switch to DNS proxy");
-  toggle.classList.toggle("on", status.enabled);
-  stopProxy.disabled = !available;
+  available = true;
+  const mode = modeOf(status);
+  if (!dirty || resetSelection) {
+    selection = mode === "custom" ? null : mode;
+    dirty = false;
+  }
+  const noNetwork = !status.activeService;
+  const offline = status.enabled && !status.dnscryptRunning;
+  document.body.dataset.state = noNetwork
+    ? "unavailable"
+    : offline
+      ? "warning"
+      : mode;
+  $("resolver-title").textContent = noNetwork
+    ? "Not\nconnected."
+    : mode === "encrypted"
+      ? "Encrypted\nDNS"
+      : mode === "automatic"
+        ? "Automatic\nDNS"
+        : "Custom\nDNS";
+  $("resolver-description").textContent = noNetwork
+    ? "Connect to a network to read its DNS settings."
+    : offline
+      ? "Local DNS selected. The resolver is not running."
+      : mode === "encrypted"
+        ? "Local encrypted DNS selected."
+        : mode === "automatic"
+          ? "Using network-provided DNS."
+          : "Using your configured DNS servers.";
+  $("state-label").textContent = noNetwork
+    ? "No network"
+    : offline
+      ? "Resolver offline"
+      : mode === "encrypted"
+        ? "Ward active"
+        : mode === "automatic"
+          ? "Automatic"
+          : "Custom configuration";
+  $("network-mode").textContent = noNetwork
+    ? "No active network"
+    : `${mode} mode`;
+  $("service").textContent = status.activeService ?? "Not connected";
+  $("interface").textContent = status.activeInterface ?? "—";
+  $("servers").textContent =
+    status.configuredResolvers.join(" · ") || "Network-provided (DHCP)";
+  $("last-action").textContent = status.lastAction ?? "No changes recorded.";
+  $("process").replaceChildren();
+  const dot = document.createElement("span");
+  dot.className = `process-dot${status.dnscryptRunning ? " running" : ""}`;
+  dot.setAttribute("aria-hidden", "true");
+  $("process").append(dot, status.dnscryptRunning ? "Running" : "Stopped");
+  message(status.lastError, Boolean(status.lastError));
+  updateControls();
 }
 
 async function refresh() {
+  if (busy || modeDialog.open || stopDialog.open) return;
+  const version = changeVersion;
   try {
-    const response = await fetch("/api/status", { cache: "no-store" });
-    if (!response.ok) throw new Error("Unable to read DNS status.");
-    render(await response.json());
-  } catch (error) {
-    $("detail").textContent = error instanceof Error ? error.message : "Unable to read DNS status.";
-    $("detail").classList.add("error");
+    const response = await fetch("/api/status", {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) throw new Error("Could not read network settings.");
+    const status = (await response.json()) as Status;
+    if (version === changeVersion) render(status);
+  } catch {
+    if (version !== changeVersion) return;
+    available = false;
+    document.body.dataset.state = "unavailable";
+    $("resolver-title").textContent = "Connection\nunavailable.";
+    $("resolver-description").textContent =
+      "Ward could not reach its local control service.";
+    $("state-label").textContent = "Unavailable";
+    $("network-mode").textContent = "Status unavailable";
+    $("service").textContent =
+      $("interface").textContent =
+      $("servers").textContent =
+      $("process").textContent =
+        "—";
+    message(
+      "Could not read network settings. Ward will try again shortly.",
+      true,
+    );
+    updateControls();
   }
 }
 
-toggle.addEventListener("click", async () => {
-  if (!current) return;
-  const enabled = !current.enabled;
-  toggle.disabled = true;
-  toggle.classList.add("loading");
-  $("button-label").textContent = "Switching";
-  $("mode").textContent = "Applying DNS change";
-  $("detail").textContent = "Updating DNS settings. This may take a moment.";
-  $("detail").hidden = false;
+for (const [button, mode] of [
+  [encrypted, "encrypted"],
+  [automatic, "automatic"],
+] as const) {
+  button.addEventListener("click", () => {
+    selection = mode;
+    dirty = true;
+    updateControls();
+  });
+}
+
+apply.addEventListener("click", () => {
+  if (!selection || !available || busy || apply.disabled) return;
+  confirmedSelection = selection;
+  const enabling = selection === "encrypted";
+  $("mode-dialog-title").textContent = enabling
+    ? "Select encrypted DNS?"
+    : "Use automatic DNS?";
+  $("mode-dialog-description").textContent = enabling
+    ? "Ward will start the local encrypted resolver, check that it is ready, then select it for your active network."
+    : "Your active network will use its network-provided DNS settings. The local resolver will stay ready for next time.";
+  $("confirm-mode").textContent = enabling
+    ? "Use encrypted DNS"
+    : "Use automatic DNS";
+  modeDialog.returnValue = "";
+  modeDialog.showModal();
+});
+
+async function mutate(path: string, body?: { enabled: boolean }) {
+  changeVersion++;
+  busy = true;
+  updateControls();
+  message(
+    path === "/api/stop-proxy"
+      ? "Restoring automatic DNS and stopping the local resolver…"
+      : "Applying your DNS configuration…",
+  );
   try {
-    const response = await fetch("/api/toggle", {
+    const response = await fetch(path, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enabled }),
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(45_000),
     });
-    render((await response.json()) as Status);
-  } catch (error) {
-    $("detail").textContent = error instanceof Error ? error.message : "The DNS change failed.";
-    $("detail").classList.add("error");
-    toggle.disabled = false;
+    const status = (await response.json()) as Status;
+    render(status, true);
+    if (!response.ok)
+      message(
+        "Could not change DNS settings. " +
+          (status.lastError ?? "Check the local helper and try again."),
+        true,
+      );
+  } catch {
+    available = false;
+    document.body.dataset.state = "unavailable";
+    $("state-label").textContent = "Check connection";
+    message(
+      "Could not confirm the DNS change. Refreshing your network settings…",
+      true,
+    );
   } finally {
-    toggle.classList.remove("loading");
+    busy = false;
+    updateControls();
+    if (!available) void refresh();
+  }
+}
+
+modeDialog.addEventListener("close", () => {
+  const requested = confirmedSelection;
+  confirmedSelection = null;
+  if (modeDialog.returnValue === "confirm" && requested && !busy) {
+    void mutate("/api/toggle", { enabled: requested === "encrypted" });
   }
 });
 
-stopProxy.addEventListener("click", () => stopDialog.showModal());
-
-stopDialog.addEventListener("close", async () => {
-  if (stopDialog.returnValue !== "confirm") return;
-  stopProxy.disabled = true;
-  $("detail").textContent = "Stopping DNS proxy.";
-  $("detail").hidden = false;
-  try {
-    const response = await fetch("/api/stop-proxy", { method: "POST" });
-    render((await response.json()) as Status);
-  } catch (error) {
-    $("detail").textContent = error instanceof Error ? error.message : "The DNS proxy could not be stopped.";
-    $("detail").classList.add("error");
-    stopProxy.disabled = false;
-  }
+stopProxy.addEventListener("click", () => {
+  if (busy || stopProxy.disabled) return;
+  stopDialog.returnValue = "";
+  stopDialog.showModal();
+});
+stopDialog.addEventListener("close", () => {
+  if (stopDialog.returnValue === "confirm" && !busy)
+    void mutate("/api/stop-proxy");
 });
 
-refresh();
+void refresh();
 window.setInterval(refresh, 20_000);

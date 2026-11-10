@@ -20,13 +20,13 @@ export type DnsStatus = {
 
 export async function getStatus(): Promise<DnsStatus> {
   const response = await fetch(statusUrl);
-  if (!response.ok) throw new Error(`DNS Control returned ${response.status}.`);
+  if (!response.ok) throw new Error(`Ward returned ${response.status}.`);
   return (await response.json()) as DnsStatus;
 }
 
 export async function setEnabled(enabled: boolean): Promise<void> {
   if (!existsSync(helperPath)) {
-    throw new Error(`DNS Control helper is not installed at ${helperPath}.`);
+    throw new Error(`Ward helper is not installed at ${helperPath}.`);
   }
 
   await execFileAsync(sudoPath, [

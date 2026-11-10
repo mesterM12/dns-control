@@ -1,9 +1,11 @@
-# DNS Control
+# Ward
+
+A little magic between you and the wire.
 
 Local macOS controls for switching the active network service between a loopback `dnscrypt-proxy` resolver and DHCP DNS.
 
-- A loopback-only Bun control panel at `http://127.0.0.1:43173`
-- A Raycast extension for viewing DNS status, toggling the DNS proxy, or opening the panel
+- A Ward control panel with a stateful sigil and confirmed mode changes at `http://127.0.0.1:43173`
+- Ward commands in Raycast: Status, Toggle DNS, Encrypted, Automatic and Open Panel
 - A root-owned helper restricted to the exact `enable`, `disable`, and `stop` DNS actions
 
 No resolver URLs, API keys, or credentials are stored in this repository.
@@ -31,6 +33,7 @@ The separate `install:helper` command remains available to update only the root-
 ## Development
 
 ```sh
+bun install --frozen-lockfile
 bun run check
 bun run start
 ```
@@ -59,7 +62,7 @@ npx ray develop
 
 Raycast imports the extension when development mode starts. It remains available after the command stops.
 
-This is a local-only extension. Run `npm run lint` in `raycast` to check the source with Raycast's ESLint rules and Prettier without requiring a Raycast Store profile. The optional `npm run lint:store` command also validates Store metadata and requires a real Raycast username in the manifest's `author` field before publication.
+The extension is named Ward. This is a local-only extension. Run `npm run lint` in `raycast` to check the source with Raycast's ESLint rules and Prettier without requiring a Raycast Store profile. The optional `npm run lint:store` command also validates Store metadata and requires a real Raycast username in the manifest's `author` field before publication.
 
 ## Security Model
 

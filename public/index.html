@@ -1,41 +1,236 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="dark">
-    <title>DNS Control</title>
-    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="/app.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#080B0B" />
+    <meta
+      name="description"
+      content="Ward. A little magic between you and the wire. Local controls for your Mac's DNS."
+    />
+    <title>Ward — Network rituals</title>
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/app.css" />
   </head>
-  <body>
-    <main>
-      <header>
-        <p class="wordmark">DNS</p>
-        <p id="service" class="service">Checking</p>
+  <body data-state="loading">
+    <svg
+      class="svg-library"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="ward-sigil" viewBox="0 0 128 128">
+        <g
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3"
+          stroke-linecap="square"
+          stroke-linejoin="miter"
+        >
+          <path
+            class="sigil-seal"
+            d="m52 12 12-7 12 7M94 22l19 11v25m0 12v25l-19 11m-18 10-12 7-12-7m-18-10L15 95V70m0-12V33l19-11"
+          />
+          <path
+            class="sigil-core"
+            d="m32 40 15 47 17-28 17 28 15-47M64 28v72M56 28h16M56 100h16"
+          />
+          <path class="sigil-cross" d="M26 64h12m52 0h12" />
+        </g>
+      </symbol>
+      <symbol id="icon-auto" viewBox="0 0 24 24">
+        <g
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M19 8a7.5 7.5 0 0 0-12-2L4 9m0-5v5h5M5 16a7.5 7.5 0 0 0 12 2l3-3m0 5v-5h-5"
+          />
+        </g>
+      </symbol>
+    </svg>
+    <main class="app-shell">
+      <header class="app-header">
+        <a class="brand" href="/" aria-label="Ward home"
+          ><svg aria-hidden="true"><use href="#ward-sigil" /></svg
+          ><span>ward<span class="brand-dot">.</span></span></a
+        >
+        <span class="eyebrow header-note"
+          >Local control <span class="slash">/</span> 01</span
+        >
       </header>
-      <section class="control" aria-label="DNS control">
-        <button id="toggle" class="toggle" type="button" aria-pressed="false" aria-describedby="detail" disabled>
-          <span id="button-label" class="button-label">Checking</span>
-          <span id="mode" class="mode">Status</span>
-        </button>
-        <p id="detail" class="message" role="status" hidden></p>
-      </section>
-      <section class="shutdown" aria-label="DNS proxy service">
-        <button id="stop-proxy" type="button">Stop proxy</button>
-      </section>
-      <dialog id="stop-dialog" aria-labelledby="stop-title">
-        <form method="dialog">
-          <h2 id="stop-title">Stop DNS proxy?</h2>
-          <p>DHCP DNS will be restored before dnscrypt-proxy is stopped.</p>
-          <div>
-            <button value="cancel">Cancel</button>
-            <button id="confirm-stop" value="confirm">Stop proxy</button>
+
+      <section class="resolver-section" aria-labelledby="resolver-title">
+        <div class="section-heading">
+          <p class="eyebrow">Network rituals</p>
+          <span class="edition">W / 001</span>
+        </div>
+        <div class="current-resolver">
+          <div class="resolver-copy">
+            <p class="eyebrow">Current resolver</p>
+            <h1 id="resolver-title">Reading<br />the wire.</h1>
+            <p id="resolver-description" class="resolver-description">
+              Checking your network configuration.
+            </p>
+            <span id="state-badge" class="state-badge"
+              ><span class="status-dot"></span
+              ><span id="state-label">Checking</span></span
+            >
           </div>
-        </form>
-      </dialog>
+          <div id="sigil" class="sigil-display" aria-hidden="true">
+            <span class="sigil-orbit"></span>
+            <svg><use href="#ward-sigil" /></svg>
+            <span class="sigil-caption">LOCAL / DNS</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="mode-section" aria-labelledby="mode-heading">
+        <div class="mode-heading">
+          <div>
+            <h2 id="mode-heading">Resolver mode</h2>
+            <p>Select how your Mac resolves names.</p>
+          </div>
+          <span class="section-index" aria-hidden="true">01 / 02</span>
+        </div>
+        <div class="mode-options" role="group" aria-label="Resolver mode">
+          <button
+            id="mode-encrypted"
+            class="mode-option"
+            type="button"
+            aria-pressed="false"
+            disabled
+          >
+            <svg class="option-icon" aria-hidden="true">
+              <use href="#ward-sigil" />
+            </svg>
+            <span class="option-copy"
+              ><span class="option-title">Encrypted</span
+              ><span class="option-detail">Local DNS proxy</span></span
+            ><span class="selection-mark" aria-hidden="true"></span>
+          </button>
+          <button
+            id="mode-automatic"
+            class="mode-option"
+            type="button"
+            aria-pressed="false"
+            disabled
+          >
+            <svg class="option-icon auto-icon" aria-hidden="true">
+              <use href="#icon-auto" />
+            </svg>
+            <span class="option-copy"
+              ><span class="option-title">Automatic</span
+              ><span class="option-detail">Network-provided DNS</span></span
+            ><span class="selection-mark" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="apply-row">
+          <p id="selection-note">Waiting for network status.</p>
+          <button id="apply-mode" class="button-primary" type="button" disabled>
+            Apply mode <span aria-hidden="true">↗</span>
+          </button>
+        </div>
+        <p
+          id="message"
+          class="message"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></p>
+      </section>
+
+      <section class="network-section" aria-labelledby="network-heading">
+        <div class="network-row">
+          <div class="network-label">
+            <span class="network-glyph" aria-hidden="true">⌁</span>
+            <h2 id="network-heading">Network DNS settings</h2>
+          </div>
+          <span id="network-mode" class="eyebrow">Checking</span>
+        </div>
+        <dl class="network-facts">
+          <div>
+            <dt>Active network</dt>
+            <dd id="service">—</dd>
+          </div>
+          <div>
+            <dt>Resolver process</dt>
+            <dd id="process">—</dd>
+          </div>
+        </dl>
+        <details id="diagnostics" class="diagnostics">
+          <summary>
+            Connection details <span aria-hidden="true">+</span>
+          </summary>
+          <dl>
+            <div>
+              <dt>Interface</dt>
+              <dd id="interface">—</dd>
+            </div>
+            <div>
+              <dt>DNS servers</dt>
+              <dd id="servers">—</dd>
+            </div>
+            <div>
+              <dt>Last change</dt>
+              <dd id="last-action">No changes this session.</dd>
+            </div>
+          </dl>
+        </details>
+      </section>
+
+      <footer class="app-footer">
+        <div>
+          <p class="tagline">A little magic between you and the wire.</p>
+          <p class="footer-note">ON YOUR MAC. UNDER YOUR CONTROL.</p>
+        </div>
+        <button id="stop-proxy" type="button" class="button-quiet" disabled>
+          <span class="stop-symbol" aria-hidden="true">◻</span> Stop resolver
+        </button>
+      </footer>
     </main>
+
+    <dialog
+      id="mode-dialog"
+      aria-labelledby="mode-dialog-title"
+      aria-describedby="mode-dialog-description"
+    >
+      <form method="dialog">
+        <p class="eyebrow">Network rituals / Confirm</p>
+        <h2 id="mode-dialog-title">Change DNS mode?</h2>
+        <p id="mode-dialog-description"></p>
+        <div class="dialog-actions">
+          <button value="cancel" class="button-secondary" autofocus>
+            Keep current mode</button
+          ><button id="confirm-mode" value="confirm" class="button-primary">
+            Apply mode
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog
+      id="stop-dialog"
+      aria-labelledby="stop-title"
+      aria-describedby="stop-description"
+    >
+      <form method="dialog">
+        <p class="eyebrow">Resolver control</p>
+        <h2 id="stop-title">Let the resolver rest.</h2>
+        <p id="stop-description">
+          Automatic DNS will be restored before the local resolver stops. You
+          can start it again by selecting Encrypted mode.
+        </p>
+        <div class="dialog-actions">
+          <button value="cancel" class="button-secondary" autofocus>
+            Keep running</button
+          ><button value="confirm" class="button-primary">Stop resolver</button>
+        </div>
+      </form>
+    </dialog>
     <script src="/app.js"></script>
   </body>
 </html>

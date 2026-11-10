@@ -163,9 +163,12 @@ const app = async (request: Request) => {
   if (url.pathname === "/favicon.ico" && request.method === "GET") {
     return new Response(Bun.file(`${import.meta.dir}/../public/favicon.ico`), { headers: { ...headers, "Content-Type": "image/vnd.microsoft.icon" } });
   }
+  if (request.method === "GET" && (url.pathname === "/fonts/geist.ttf" || url.pathname === "/fonts/jetbrains-mono.ttf")) {
+    return new Response(Bun.file(`${import.meta.dir}/../public${url.pathname}`), { headers: { ...headers, "Content-Type": "font/ttf" } });
+  }
   return new Response("Not found", { status: 404, headers });
 };
 
 Bun.serve({ hostname: "127.0.0.1", port, fetch: app });
 Bun.serve({ hostname: "::1", port, fetch: app });
-console.log(`DNS Control listening at http://127.0.0.1:${port}`);
+console.log(`Ward listening at http://127.0.0.1:${port}`);

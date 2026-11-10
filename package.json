@@ -10,5 +10,8 @@
     "install:agent": "bun scripts/install-launch-agent.ts",
     "install:helper": "bun scripts/install-privileged-helper.ts",
     "install:resolver": "bun scripts/install-resolver.ts"
+  },
+  "devDependencies": {
+    "happy-dom": "^21.0.4"
   }
 }

@@ -1,4 +1,4 @@
-# Product
+# Ward
 
 <!-- impeccable:product-schema 1 -->
 
@@ -28,4 +28,4 @@ Loopback-only, no login, no persisted credentials and no remote operation. Runti
 
 ## Product Principles
 
-Keep the control immediate, expose current resolver facts, keep privileged work narrowly scoped, and leave dnscrypt-proxy running for fast re-enable.
+Show the observed DNS configuration clearly, confirm mode changes, keep network diagnostics secondary, and keep privileged work narrowly scoped. Use a restrained geometric sigil and the Poisoned Sage palette; automatic DNS remains a normal, neutral state.

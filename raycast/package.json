@@ -2,8 +2,8 @@
   "name": "dns-control",
   "version": "1.0.0",
   "private": true,
-  "title": "DNS Control",
-  "description": "Switch between DNS proxy and DHCP DNS",
+  "title": "Ward",
+  "description": "Local control of encrypted and automatic DNS",
   "icon": "icon.png",
   "author": "mrm",
   "platforms": [
@@ -14,10 +14,12 @@
   ],
   "license": "MIT",
   "keywords": [
+    "ward",
     "dns",
+    "encrypted",
     "proxy",
     "dhcp",
-    "adguard"
+    "network"
   ],
   "main": "src/status.tsx",
   "scripts": {
@@ -39,20 +41,32 @@
   "commands": [
     {
       "name": "status",
-      "title": "DNS Status",
-      "description": "Check DNS proxy, network, and resolver status without opening a browser",
+      "title": "Ward: Status",
+      "description": "Check the current DNS configuration and local resolver",
       "mode": "view"
     },
     {
       "name": "toggle-dns",
-      "title": "Toggle DNS Proxy",
-      "description": "Switch between the DNS proxy and DHCP DNS",
+      "title": "Ward: Toggle DNS",
+      "description": "Switch between local encrypted and network-provided DNS",
+      "mode": "no-view"
+    },
+    {
+      "name": "encrypted",
+      "title": "Ward: Encrypted",
+      "description": "Select the local encrypted DNS resolver",
+      "mode": "no-view"
+    },
+    {
+      "name": "automatic",
+      "title": "Ward: Automatic",
+      "description": "Restore network-provided automatic DNS",
       "mode": "no-view"
     },
     {
       "name": "open-control-page",
-      "title": "Open DNS Control Page",
-      "description": "Open the local DNS Control page",
+      "title": "Ward: Open Panel",
+      "description": "Open the local Ward control panel",
       "mode": "no-view"
     }
   ]

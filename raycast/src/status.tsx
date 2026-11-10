@@ -45,7 +45,7 @@ export default function Command() {
       await showToast({
         style: Toast.Style.Failure,
         title: "Unable to change DNS",
-        message: error instanceof Error ? error.message : "DNS Control failed.",
+        message: error instanceof Error ? error.message : "Ward failed.",
       });
     } finally {
       await refresh();
@@ -66,32 +66,35 @@ export default function Command() {
       />
       {status && (
         <Action
-          title={status.enabled ? "Switch to DHCP DNS" : "Enable DNS Proxy"}
+          title={status.enabled ? "Use Automatic DNS" : "Use Encrypted DNS"}
           icon={Icon.Switch}
           onAction={toggle}
         />
       )}
-      <Action.OpenInBrowser
-        title="Open DNS Control Page"
-        url={controlPageUrl}
-      />
+      <Action.OpenInBrowser title="Open Ward Panel" url={controlPageUrl} />
     </ActionPanel>
   );
 
   return (
     <List
       isLoading={loading}
-      searchBarPlaceholder="DNS status"
+      searchBarPlaceholder="Ward · network status"
       actions={actions}
     >
       {status ? (
         <>
           <List.Item
-            title="DNS Mode"
-            subtitle={status.enabled ? "DNS proxy" : "DHCP / automatic"}
+            title="Resolver Mode"
+            subtitle={
+              status.enabled
+                ? "Encrypted DNS"
+                : status.configuredResolvers.length
+                  ? "Custom DNS"
+                  : "Automatic DNS"
+            }
             icon={{
               source: Icon.Globe,
-              tintColor: status.enabled ? Color.Green : Color.SecondaryText,
+              tintColor: status.enabled ? "#C3F58A" : Color.SecondaryText,
             }}
             actions={actions}
           />
@@ -99,17 +102,17 @@ export default function Command() {
             title="Resolver Process"
             subtitle={
               status.dnscryptRunning
-                ? "dnscrypt-proxy running"
-                : "dnscrypt-proxy stopped"
+                ? "Local resolver running"
+                : "Local resolver stopped"
             }
             icon={{
               source: status.dnscryptRunning
                 ? Icon.CheckCircle
                 : Icon.XMarkCircle,
               tintColor: status.dnscryptRunning
-                ? Color.Green
+                ? "#C3F58A"
                 : status.enabled
-                  ? Color.Red
+                  ? "#ED896F"
                   : Color.SecondaryText,
             }}
             actions={actions}
@@ -143,14 +146,14 @@ export default function Command() {
             <List.Item
               title="Last Error"
               subtitle={status.lastError}
-              icon={{ source: Icon.Warning, tintColor: Color.Red }}
+              icon={{ source: Icon.Warning, tintColor: "#ED896F" }}
               actions={actions}
             />
           )}
         </>
       ) : (
         <List.EmptyView
-          title={error ? "DNS Control Unavailable" : "Loading DNS Status"}
+          title={error ? "Ward Unavailable" : "Reading Network Settings"}
           description={error}
           icon={Icon.Globe}
           actions={actions}
