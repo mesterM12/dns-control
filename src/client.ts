@@ -48,8 +48,8 @@ toggle.addEventListener("click", async () => {
   toggle.disabled = true;
   toggle.classList.add("loading");
   $("button-label").textContent = "Switching";
-  $("mode").textContent = "Confirm to continue";
-  $("detail").textContent = "Confirm the system prompt to apply this DNS change.";
+  $("mode").textContent = "Applying DNS change";
+  $("detail").textContent = "Updating DNS settings. This may take a moment.";
   $("detail").hidden = false;
   try {
     const response = await fetch("/api/toggle", {

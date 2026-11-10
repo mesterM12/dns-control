@@ -24,7 +24,7 @@ It controls the system DNS setting for the currently routed network service rath
 
 ## Capabilities and Constraints
 
-Loopback-only, no login, no persisted credentials, no remote operation, and no modification to DNS resolver configuration beyond system DNS servers. Uses the existing Homebrew dnscrypt-proxy process.
+Loopback-only, no login, no persisted credentials and no remote operation. Runtime controls change only system DNS servers and the dedicated resolver service state. A reviewed resolver configuration and immutable root-owned resolver binary are installed separately, using a mise-managed executable as the preferred source rather than invoking Homebrew services as root.
 
 ## Product Principles
 

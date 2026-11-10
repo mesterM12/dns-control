@@ -2,15 +2,46 @@
 set -eu
 
 NETWORKSETUP=/usr/sbin/networksetup
-PGREP=/usr/bin/pgrep
 ROUTE=/sbin/route
 AWK=/usr/bin/awk
-if [ -x /opt/homebrew/bin/brew ]; then
-  BREW=/opt/homebrew/bin/brew
-else
-  BREW=/usr/local/bin/brew
-fi
 LAUNCHCTL=/bin/launchctl
+LSOF=/usr/sbin/lsof
+DIG=/usr/bin/dig
+GREP=/usr/bin/grep
+SLEEP=/bin/sleep
+DAEMON=com.local.dnscrypt-proxy
+PLIST=/Library/LaunchDaemons/com.local.dnscrypt-proxy.plist
+
+resolver_pid() {
+  job="$("$LAUNCHCTL" print "system/$DAEMON" 2>/dev/null)" || return 1
+  printf '%s\n' "$job" | "$AWK" '
+    $1 == "state" && $2 == "=" && $3 == "running" { running = 1 }
+    $1 == "pid" && $2 == "=" && $3 ~ /^[1-9][0-9]*$/ { pid = $3 }
+    END { if (running && pid != "") print pid; else exit 1 }
+  '
+}
+
+owns_dns_listeners() {
+  # Query each protocol separately so TCP must be listening, not merely
+  # connected to an upstream DNS server. Wildcard binds are not loopback binds.
+  for listener_protocol in UDP TCP; do
+    if [ "$listener_protocol" = TCP ]; then
+      listener_sockets="$("$LSOF" -nP -a -p "$1" -iTCP:53 -sTCP:LISTEN -Fpn 2>/dev/null)" || return 1
+    else
+      listener_sockets="$("$LSOF" -nP -a -p "$1" -iUDP:53 -Fpn 2>/dev/null)" || return 1
+    fi
+    printf '%s\n' "$listener_sockets" | "$AWK" -v expected_pid="$1" '
+      /^p/ { pid = substr($0, 2) }
+      /^n/ {
+        address = substr($0, 2)
+        if (address == "127.0.0.1:53" && pid == expected_pid) ipv4 = 1
+        if (address == "[::1]:53" && pid == expected_pid) ipv6 = 1
+        if (address == "*:53" || address == "0.0.0.0:53" || address == "[::]:53") wildcard = 1
+      }
+      END { exit !(ipv4 && ipv6 && !wildcard) }
+    ' || return 1
+  done
+}
 
 case "${1-}" in
   enable|disable|stop) action=$1 ;;
@@ -27,20 +58,41 @@ service="$($NETWORKSETUP -listnetworkserviceorder | $AWK -v device="$interface" 
 [ -n "$service" ] || { echo "No network service for $interface." >&2; exit 1; }
 
 if [ "$action" = enable ]; then
-  if ! $PGREP -x dnscrypt-proxy >/dev/null 2>&1; then
-    "$BREW" services start dnscrypt-proxy || "$LAUNCHCTL" kickstart -k system/homebrew.mxcl.dnscrypt-proxy
+  [ -f "$PLIST" ] || { echo "Install the DNS Control resolver service first." >&2; exit 1; }
+  "$LAUNCHCTL" enable "system/$DAEMON"
+  if ! "$LAUNCHCTL" print "system/$DAEMON" >/dev/null 2>&1; then
+    "$LAUNCHCTL" bootstrap system "$PLIST"
   fi
-  $PGREP -x dnscrypt-proxy >/dev/null 2>&1 || { echo "dnscrypt-proxy did not start." >&2; exit 1; }
+  # Leave a healthy loaded resolver running. A failed kickstart is harmless
+  # only if launchd subsequently reports a running job that owns the listeners.
+  if ! resolver_pid >/dev/null; then
+    "$LAUNCHCTL" kickstart "system/$DAEMON" >/dev/null 2>&1 || :
+  fi
+  # Replies alone could come from another resolver already occupying port 53.
+  # Require this job's PID to own both protocols on both loopback addresses,
+  # and verify the same process still owns them after the DNS probes.
+  ready=no
+  for attempt in 1 2 3 4 5; do
+    current_pid="$(resolver_pid)" || current_pid=
+    if [ -n "$current_pid" ] && owns_dns_listeners "$current_pid" &&
+       "$DIG" +time=2 +tries=1 +short @127.0.0.1 example.com A | "$GREP" -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' &&
+       "$DIG" +time=2 +tries=1 +short @::1 example.com A | "$GREP" -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' &&
+       [ "$(resolver_pid || :)" = "$current_pid" ] && owns_dns_listeners "$current_pid"; then
+      ready=yes
+      break
+    fi
+    "$SLEEP" 1
+  done
+  [ "$ready" = yes ] || { echo "Dedicated resolver ownership or loopback DNS checks failed; system DNS was not changed." >&2; exit 1; }
   "$NETWORKSETUP" -setdnsservers "$service" 127.0.0.1 ::1
 elif [ "$action" = disable ]; then
   "$NETWORKSETUP" -setdnsservers "$service" Empty
 else
   "$NETWORKSETUP" -setdnsservers "$service" Empty
-  "$BREW" services stop dnscrypt-proxy || true
-  "$LAUNCHCTL" bootout system/homebrew.mxcl.dnscrypt-proxy 2>/dev/null || true
-  /usr/bin/pkill -x dnscrypt-proxy 2>/dev/null || true
-  if $PGREP -x dnscrypt-proxy >/dev/null 2>&1; then
-    echo "dnscrypt-proxy is still running." >&2
+  "$LAUNCHCTL" disable "system/$DAEMON"
+  "$LAUNCHCTL" bootout "system/$DAEMON" 2>/dev/null || true
+  if "$LAUNCHCTL" print "system/$DAEMON" >/dev/null 2>&1; then
+    echo "The DNS Control resolver service is still loaded." >&2
     exit 1
   fi
 fi

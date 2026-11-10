@@ -12,17 +12,19 @@ No resolver URLs, API keys, or credentials are stored in this repository.
 
 - macOS
 - [Bun](https://bun.sh/)
-- Homebrew `dnscrypt-proxy` configured to listen on `127.0.0.1` and `::1`
+- Latest `dnscrypt-proxy` (mise is preferred), with reviewed configuration listening on `127.0.0.1:53` and `[::1]:53`
 - Raycast, optionally
 
 ## Install
 
 ```sh
-bun run install:helper
+bun run install:resolver --binary "$(mise which dnscrypt-proxy)" --config /path/to/reviewed-dnscrypt-proxy.toml
 bun run install:agent
 ```
 
-`install:helper` asks for macOS administrator approval once. It installs a root-owned helper and validates a narrowly scoped `/etc/sudoers.d/dns-control` rule. Ordinary toggles never store or request credentials.
+`install:resolver` validates the supplied configuration as the current user, then asks once for macOS administrator approval to install the resolver binary/configuration into `/Library/Application Support/DNS Control`, the narrow helper and its validated sudoers rule. It writes a dedicated `com.local.dnscrypt-proxy` LaunchDaemon but leaves it disabled and unloaded. It does not change system DNS. An existing installed resolver configuration is never overwritten automatically. This root-owned snapshot is intentionally separate from mise's user-writable installation; use a reviewed upgrade procedure when updating the resolver.
+
+The separate `install:helper` command remains available to update only the root-owned helper and narrowly scoped `/etc/sudoers.d/dns-control` rule. Ordinary toggles never store or request credentials.
 
 `install:agent` creates a user LaunchAgent using the current Bun executable and repository location.
 
@@ -34,6 +36,18 @@ bun run start
 ```
 
 The browser client is authored in TypeScript and emitted as a small static bundle during `bun run build`.
+
+The helper enables the dedicated resolver service only when you explicitly enable DNS in the app, verifies that its process owns both loopback DNS listeners over UDP and TCP, and checks DNS responses before redirecting system DNS. Disable restores DHCP DNS and leaves the resolver ready for reuse. Stop restores DHCP DNS, unloads only the dedicated DNS Control service and disables it across restarts; it never kills unrelated resolver processes.
+
+Supply your reviewed resolver configuration as a local file; its contents are never printed by the installer. The repository does not contain a previous resolver/provider configuration and does not silently choose public upstream defaults. Review provider/route settings before installation, and ensure the listeners are `127.0.0.1:53` and `[::1]:53`.
+
+All configured file references must use absolute paths, including rule files, certificates, resolver source caches and log files. Supporting files are not copied with the TOML file. Install and review those files separately at their intended locations, ensure the resolver can access them, and avoid writable input files when the resolver runs as root. The installer rejects relative file references before asking for administrator approval so moving the configuration cannot silently change their meaning.
+
+Run installer and helper regression checks without touching live services or DNS:
+
+```sh
+bun run test
+```
 
 ### Raycast
 

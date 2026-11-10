@@ -4,3 +4,10 @@ state.json
 public/app.js
 raycast/node_modules/
 raycast/raycast-env.d.ts
+.env
+.env.*
+dnscrypt-proxy.toml
+*.key
+*.pem
+*.p12
+*.pfx

@@ -5,10 +5,19 @@
   "description": "Switch between DNS proxy and DHCP DNS",
   "icon": "icon.png",
   "author": "mrm",
-  "platforms": ["macOS"],
-  "categories": ["System"],
+  "platforms": [
+    "macOS"
+  ],
+  "categories": [
+    "System"
+  ],
   "license": "MIT",
-  "keywords": ["dns", "proxy", "dhcp", "adguard"],
+  "keywords": [
+    "dns",
+    "proxy",
+    "dhcp",
+    "adguard"
+  ],
   "main": "src/status.tsx",
   "scripts": {
     "build": "ray build",
@@ -16,14 +25,14 @@
     "lint": "ray lint"
   },
   "dependencies": {
-    "@raycast/api": "^1.98.0"
+    "@raycast/api": "^2.11.1"
   },
   "devDependencies": {
-    "@raycast/eslint-config": "^2.0.0",
-    "@types/node": "^22.0.0",
-    "eslint": "^9.0.0",
-    "prettier": "^3.0.0",
-    "typescript": "^5.0.0"
+    "@raycast/eslint-config": "^2.2.0",
+    "@types/node": "^26.6.6",
+    "eslint": "^10.14.0",
+    "prettier": "^3.9.10",
+    "typescript": "<6.1.0"
   },
   "commands": [
     {
