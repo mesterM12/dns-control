@@ -157,6 +157,12 @@ const app = async (request: Request) => {
   if (url.pathname === "/app.js" && request.method === "GET") {
     return new Response(Bun.file(`${import.meta.dir}/../public/app.js`), { headers: { ...headers, "Content-Type": "text/javascript; charset=utf-8" } });
   }
+  if (url.pathname === "/favicon.svg" && request.method === "GET") {
+    return new Response(Bun.file(`${import.meta.dir}/../public/favicon.svg`), { headers: { ...headers, "Content-Type": "image/svg+xml" } });
+  }
+  if (url.pathname === "/favicon.ico" && request.method === "GET") {
+    return new Response(Bun.file(`${import.meta.dir}/../public/favicon.ico`), { headers: { ...headers, "Content-Type": "image/vnd.microsoft.icon" } });
+  }
   return new Response("Not found", { status: 404, headers });
 };
 
