@@ -1,0 +1,28 @@
+# Optional starter configuration for Ward. Installing this file explicitly
+# chooses Cloudflare's public, non-filtering DNS-over-HTTPS service.
+# Review the provider's policy: https://developers.cloudflare.com/1.1.1.1/privacy/
+# Public stamp source (entry "cloudflare", retrieved 2026-11-10):
+# https://github.com/DNSCrypt/dnscrypt-resolvers/blob/master/v3/public-resolvers.md
+# The stamp contains a public endpoint, not a credential.
+
+server_names = ['cloudflare']
+listen_addresses = ['127.0.0.1:53', '[::1]:53']
+max_clients = 250
+ipv4_servers = true
+ipv6_servers = false
+dnscrypt_servers = false
+doh_servers = true
+timeout = 5000
+keepalive = 30
+cache = true
+log_level = 2
+
+# The stamp includes the upstream IP, so no bootstrap DNS is required.
+bootstrap_resolvers = []
+ignore_system_dns = true
+netprobe_address = '1.1.1.1:443'
+netprobe_timeout = 5
+
+# No external rule files, source caches, certificates or query logs are needed.
+[static.cloudflare]
+stamp = 'sdns://AgcAAAAAAAAABzEuMC4wLjEAEmRucy5jbG91ZGZsYXJlLmNvbQovZG5zLXF1ZXJ5'
